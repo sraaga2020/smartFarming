@@ -39,8 +39,13 @@ void loop() {
   Serial.println("---");
 
   int moisture = analogRead(A0);
+  float moisturePercent = map(moisture, 0, 1023, 100, 0);
+  moisturePercent = constrain(moisturePercent, 0, 100);
+
   Serial.print("Moisture: ");
-  Serial.println(moisture);
+  Serial.print(moisturePercent);
+  Serial.println("%");
+
 
   int light = analogRead(A1);
   Serial.print("Light: ");
