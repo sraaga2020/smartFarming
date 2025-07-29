@@ -1,17 +1,160 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Arduino Sensor Dashboard</title>
-    <meta http-equiv="refresh" content="3">
+  <title>Smart Garden Dashboard</title>
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap');
+
+    body {
+      margin: 0;
+      background: #e6f2e6; /* soft pale green */
+      font-family: 'Montserrat', sans-serif;
+      color: #2d4a2d; /* deep green */
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .dashboard {
+      background: #ffffffdd; /* semi-transparent white */
+      border-radius: 16px;
+      box-shadow: 0 8px 20px rgba(45, 74, 45, 0.15);
+      padding: 30px 40px;
+      max-width: 360px;
+      width: 100%;
+      position: relative;
+    }
+
+    h1 {
+      text-align: center;
+      color: #1a341a;
+      font-weight: 700;
+      font-size: 2.8rem;
+      margin-bottom: 30px;
+      text-shadow: 0 2px 3px rgba(0,0,0,0.1);
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+    }
+
+    li {
+      background: #daf0d8;
+      margin-bottom: 15px;
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-size: 1.25rem;
+      font-weight: 600;
+      display: flex;
+      justify-content: space-between;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+      transition: background 0.3s ease;
+    }
+
+    li:hover {
+      background: #c1e4b5;
+    }
+
+    strong {
+      color: #225522;
+    }
+
+    /* Dropdown styling */
+    form {
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    select {
+      font-size: 1.2rem;
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 2px solid #2d4a2d;
+      background: #f0fff0;
+      color: #225522;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.3s ease;
+    }
+
+    select:hover, select:focus {
+      border-color: #1a341a;
+    }
+
+    button {
+      font-size: 1.2rem;
+      padding: 8px 20px;
+      border-radius: 12px;
+      border: none;
+      background-color: #2d4a2d;
+      color: white;
+      cursor: pointer;
+      margin-left: 10px;
+      transition: background-color 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #1a341a;
+    }
+
+    /* Suggestions */
+    .suggestions {
+      background: #daf0d8;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: inset 0 2px 5px rgba(0,0,0,0.05);
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #225522;
+    }
+
+    .no-suggestions {
+      font-style: italic;
+      color: #4a704a;
+    }
+  </style>
 </head>
 <body>
-    <h1>Sensor Readings</h1>
+  <div class="dashboard">
+    <h1>Smart Garden Dashboard</h1>
+
+    <form method="POST" action="/">
+      <label for="plant_select"><strong>Select your plant:</strong></label><br>
+      <select name="plant_select" id="plant_select" required>
+        <option value="" disabled selected>Select plant</option>
+        {% for plant in plants %}
+          <option value="{{ plant }}" {% if plant == selected_plant %}selected{% endif %}>{{ plant }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Check</button>
+    </form>
+
     <ul>
-        <li><strong>Temperature:</strong> {{ temp }} °C</li>
-        <li><strong>Humidity:</strong> {{ hum }} %</li>
-        <li><strong>Soil Moisture:</strong> {{ moisture }}</li>
-        <li><strong>Light Level:</strong> {{ light }}</li>
-        <li><strong>Hour:</strong> {{ hour }}</li>
+      <li><strong>Temperature:</strong> <span>{{ sensor_data.temperature if sensor_data.temperature is not none else "N/A" }} °C</span></li>
+      <li><strong>Humidity:</strong> <span>{{ sensor_data.humidity if sensor_data.humidity is not none else "N/A" }} %</span></li>
+      <li><strong>Soil Moisture:</strong> <span>{{ sensor_data.moisture if sensor_data.moisture is not none else "N/A" }}</span></li>
+      <li><strong>Light Level:</strong> <span>{{ sensor_data.light if sensor_data.light is not none else "N/A" }}</span></li>
+      <li><strong>Hour:</strong> <span>{{ sensor_data.hour if sensor_data.hour is not none else "N/A" }}</span></li>
     </ul>
+
+    <div class="suggestions">
+      {% if suggestions %}
+        <strong>Suggestions:</strong>
+        <ul>
+          {% for s in suggestions %}
+            <li>{{ s }}</li>
+          {% endfor %}
+        </ul>
+      {% elif selected_plant %}
+        <div class="no-suggestions">All readings are within ideal ranges for {{ selected_plant }}.</div>
+      {% else %}
+        <div class="no-suggestions">Select a plant to get suggestions.</div>
+      {% endif %}
+    </div>
+  </div>
 </body>
 </html>
