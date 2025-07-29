@@ -1,42 +1,208 @@
-from flask import Flask, render_template
+from flask import Flask, render_template, request
 import serial
 import time
 
 app = Flask(__name__)
 
-# Replace with your correct port (e.g., 'COM3' on Windows)
+# Change this to your actual Arduino serial port
 ser = serial.Serial('/dev/cu.usbmodem14101', 9600, timeout=1)
 time.sleep(2)  # Wait for Arduino to reset
 
-@app.route('/')
-def index():
+# Synthetic dataset of 15 plants with ideal ranges
+plant_data = {
+    "Tomato": {
+        "temp": (18, 27),
+        "humidity": (50, 70),
+        "moisture": (60, 80),
+        "light": (600, 900)
+    },
+    "Basil": {
+        "temp": (20, 30),
+        "humidity": (40, 60),
+        "moisture": (50, 75),
+        "light": (500, 800)
+    },
+    "Cactus": {
+        "temp": (21, 32),
+        "humidity": (10, 30),
+        "moisture": (10, 30),
+        "light": (700, 1023)
+    },
+    "Fern": {
+        "temp": (16, 24),
+        "humidity": (60, 90),
+        "moisture": (70, 90),
+        "light": (300, 600)
+    },
+    "Orchid": {
+        "temp": (18, 28),
+        "humidity": (50, 70),
+        "moisture": (50, 70),
+        "light": (400, 700)
+    },
+    "Lettuce": {
+        "temp": (15, 22),
+        "humidity": (60, 80),
+        "moisture": (60, 85),
+        "light": (400, 750)
+    },
+    "Pepper": {
+        "temp": (20, 30),
+        "humidity": (40, 70),
+        "moisture": (55, 75),
+        "light": (600, 900)
+    },
+    "Strawberry": {
+        "temp": (18, 26),
+        "humidity": (50, 70),
+        "moisture": (65, 85),
+        "light": (500, 850)
+    },
+    "Rose": {
+        "temp": (15, 25),
+        "humidity": (40, 60),
+        "moisture": (60, 80),
+        "light": (500, 900)
+    },
+    "Mint": {
+        "temp": (18, 28),
+        "humidity": (40, 60),
+        "moisture": (50, 75),
+        "light": (400, 700)
+    },
+    "Sunflower": {
+        "temp": (20, 30),
+        "humidity": (40, 70),
+        "moisture": (50, 75),
+        "light": (700, 1023)
+    },
+    "Aloe Vera": {
+        "temp": (18, 30),
+        "humidity": (20, 40),
+        "moisture": (10, 30),
+        "light": (600, 1023)
+    },
+    "Lavender": {
+        "temp": (15, 25),
+        "humidity": (30, 50),
+        "moisture": (40, 60),
+        "light": (500, 900)
+    },
+    "Snake Plant": {
+        "temp": (18, 27),
+        "humidity": (30, 50),
+        "moisture": (20, 40),
+        "light": (300, 600)
+    },
+    "Peace Lily": {
+        "temp": (18, 25),
+        "humidity": (60, 80),
+        "moisture": (60, 80),
+        "light": (200, 500)
+    }
+}
+
+
+def parse_sensor_data():
+    """
+    Read serial lines and parse sensor data.
+    Expected lines: Temperature, Humidity, Moisture, Light, Hour
+    """
     data = {
-        "temp": "N/A",
-        "hum": "N/A",
-        "moisture": "N/A",
-        "light": "N/A",
-        "hour": "N/A"
+        "temperature": None,
+        "humidity": None,
+        "moisture": None,
+        "light": None,
+        "hour": None
     }
 
-    # Read multiple lines until we get all required info
     lines_read = 0
-    while lines_read < 6:
+    start_time = time.time()
+    while lines_read < 10 and (time.time() - start_time < 5):
         if ser.in_waiting:
-            line = ser.readline().decode().strip()
+            line = ser.readline().decode(errors='ignore').strip()
             lines_read += 1
-
             if "Temperature" in line:
-                data["temp"] = line.split(":")[1].strip()
+                try:
+                    data["temperature"] = float(line.split(":")[1].strip())
+                except:
+                    pass
             elif "Humidity" in line:
-                data["hum"] = line.split(":")[1].strip()
+                try:
+                    data["humidity"] = float(line.split(":")[1].strip())
+                except:
+                    pass
             elif "Moisture" in line:
-                data["moisture"] = line.split(":")[1].strip()
+                try:
+                    # Expected format: e.g. 85% - strip %
+                    val = line.split(":")[1].strip().replace('%','')
+                    data["moisture"] = float(val)
+                except:
+                    pass
             elif "Light" in line:
-                data["light"] = line.split(":")[1].strip()
+                try:
+                    data["light"] = int(line.split(":")[1].strip())
+                except:
+                    pass
             elif "Hour" in line:
-                data["hour"] = line.split(":")[1].strip()
+                try:
+                    data["hour"] = int(line.split(":")[1].strip())
+                except:
+                    pass
+    return data
 
-    return render_template("index.html", **data)
+
+def check_ranges(sensor_data, ideal_ranges):
+    suggestions = []
+
+    temp = sensor_data.get("temperature")
+    humidity = sensor_data.get("humidity")
+    moisture = sensor_data.get("moisture")
+    light = sensor_data.get("light")
+
+    if temp is not None:
+        if temp < ideal_ranges["temp"][0]:
+            suggestions.append("Increase temperature.")
+        elif temp > ideal_ranges["temp"][1]:
+            suggestions.append("Decrease temperature.")
+
+    if humidity is not None:
+        if humidity < ideal_ranges["humidity"][0]:
+            suggestions.append("Increase humidity.")
+        elif humidity > ideal_ranges["humidity"][1]:
+            suggestions.append("Decrease humidity.")
+
+    if moisture is not None:
+        if moisture < ideal_ranges["moisture"][0]:
+            suggestions.append("Water the plant.")
+        elif moisture > ideal_ranges["moisture"][1]:
+            suggestions.append("Reduce watering.")
+
+    if light is not None:
+        if light < ideal_ranges["light"][0]:
+            suggestions.append("Move plant to a brighter spot.")
+        elif light > ideal_ranges["light"][1]:
+            suggestions.append("Reduce light exposure.")
+
+    return suggestions
+
+
+@app.route('/', methods=['GET', 'POST'])
+def index():
+    sensor_data = parse_sensor_data()
+
+    selected_plant = request.form.get('plant_select', None)
+    suggestions = []
+    if selected_plant in plant_data:
+        ideal = plant_data[selected_plant]
+        suggestions = check_ranges(sensor_data, ideal)
+
+    return render_template("index.html",
+                           plants=plant_data.keys(),
+                           selected_plant=selected_plant,
+                           sensor_data=sensor_data,
+                           suggestions=suggestions)
+
 
 if __name__ == '__main__':
     app.run(debug=True)
