@@ -22,43 +22,43 @@ plant_data = {
         "moisture": (50, 75),
         "light": (500, 800)
     },
-    "Cactus": {
+    "Lettuce": {
         "temp": (21, 32),
         "humidity": (10, 30),
         "moisture": (10, 30),
         "light": (700, 1023)
     },
-    "Fern": {
+    "Potato": {
         "temp": (16, 24),
         "humidity": (60, 90),
         "moisture": (70, 90),
         "light": (300, 600)
     },
-    "Orchid": {
+    "Olive": {
         "temp": (18, 28),
         "humidity": (50, 70),
         "moisture": (50, 70),
         "light": (400, 700)
     },
-    "Lettuce": {
+    "Strawberry": {
         "temp": (15, 22),
         "humidity": (60, 80),
         "moisture": (60, 85),
         "light": (400, 750)
     },
-    "Pepper": {
+    "Rose": {
         "temp": (20, 30),
         "humidity": (40, 70),
         "moisture": (55, 75),
         "light": (600, 900)
     },
-    "Strawberry": {
+    "Sunflower": {
         "temp": (18, 26),
         "humidity": (50, 70),
         "moisture": (65, 85),
         "light": (500, 850)
     },
-    "Rose": {
+    "Orchid": {
         "temp": (15, 25),
         "humidity": (40, 60),
         "moisture": (60, 80),
@@ -70,7 +70,7 @@ plant_data = {
         "moisture": (50, 75),
         "light": (400, 700)
     },
-    "Sunflower": {
+    "Corn": {
         "temp": (20, 30),
         "humidity": (40, 70),
         "moisture": (50, 75),
@@ -88,20 +88,19 @@ plant_data = {
         "moisture": (40, 60),
         "light": (500, 900)
     },
-    "Snake Plant": {
+    "Okra": {
         "temp": (18, 27),
         "humidity": (30, 50),
         "moisture": (20, 40),
         "light": (300, 600)
     },
-    "Peace Lily": {
+    "Lily": {
         "temp": (18, 25),
         "humidity": (60, 80),
         "moisture": (60, 80),
         "light": (200, 500)
     }
 }
-
 
 def parse_sensor_data():
     """
@@ -154,12 +153,21 @@ def parse_sensor_data():
 
 def check_ranges(sensor_data, ideal_ranges):
     suggestions = []
-
+    
+    moisture = sensor_data.get("moisture")
     temp = sensor_data.get("temperature")
     humidity = sensor_data.get("humidity")
-    moisture = sensor_data.get("moisture")
     light = sensor_data.get("light")
 
+    if moisture is not None:
+        if moisture < ideal_ranges["moisture"][0]:
+            suggestions.append("Watering automatically due to low moisture.")
+            ser.write(b'WATER\n')  # Send command to Arduino to turn on pump
+        elif moisture > ideal_ranges["moisture"][1]:
+            suggestions.append("Reduce watering.")
+            ser.write(b'NOWATER\n')
+        else:
+            ser.write(b'NOWATER\n')
     if temp is not None:
         if temp < ideal_ranges["temp"][0]:
             suggestions.append("Increase temperature.")
@@ -172,11 +180,6 @@ def check_ranges(sensor_data, ideal_ranges):
         elif humidity > ideal_ranges["humidity"][1]:
             suggestions.append("Decrease humidity.")
 
-    if moisture is not None:
-        if moisture < ideal_ranges["moisture"][0]:
-            suggestions.append("Water the plant.")
-        elif moisture > ideal_ranges["moisture"][1]:
-            suggestions.append("Reduce watering.")
 
     if light is not None:
         if light < ideal_ranges["light"][0]:
