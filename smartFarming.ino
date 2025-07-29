@@ -5,8 +5,12 @@
 #define DHT11_PIN 7
 dht DHT;
 RTC_DS1307 rtc;
+const int pumpPin = 4;
+
 
 void setup() {
+  pinMode(pumpPin, OUTPUT);
+
   Serial.begin(9600);
   delay(2000);
   Wire.begin();
@@ -46,9 +50,21 @@ void loop() {
   Serial.print(moisturePercent);
   Serial.println("%");
 
-
   int light = analogRead(A1);
   Serial.print("Light: ");
   Serial.println(light);
   delay(2000);
+
+  if (Serial.available()) {
+    String command = Serial.readStringUntil('\n');
+    command.trim();
+    if (command == "WATER") {
+      digitalWrite(pumpPin, HIGH);
+      delay(3000);
+      digitalWrite(pumpPin, LOW);
+    }
+    if (command == "NOWATER") {
+      digitalWrite(pumpPin, LOW);
+    }
+  }
 }
