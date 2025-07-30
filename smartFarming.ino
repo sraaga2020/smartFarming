@@ -48,7 +48,7 @@ void setup() {
   mylcd.Set_Text_colour(WEB_TEXT_DARK);
   mylcd.Set_Text_Back_colour(WHITE);
   mylcd.Set_Text_Size(3);
-  mylcd.Print_String("Your Smart Garden", icon_x + 30, 25);
+  mylcd.Print_String("Mini Dashboard", icon_x + 25, 25);
 
   mylcd.Set_Draw_color(WEB_FIELD_GREEN);
   mylcd.Set_Text_Back_colour(WEB_FIELD_GREEN);
@@ -64,8 +64,14 @@ void setup() {
   mylcd.Print_String("Light Level:", 275, 165);
 
   mylcd.Fill_Round_Rectangle(40, 235, 440, 295, 8);
-  pinMode(pumpPin, OUTPUT);
+  mylcd.Set_Text_colour(WEB_TEXT_DARK);
+  mylcd.Set_Text_Back_colour(WEB_FIELD_GREEN);  // Optional: Set background if needed
+  mylcd.Set_Text_Size(2);             // Adjust size if needed
+  mylcd.Print_String("Visit website for suggestions", 60, 245);
+  mylcd.Print_String("to improve plant health", 80, 265);
 
+  pinMode(pumpPin, OUTPUT);
+  digitalWrite(pumpPin, HIGH);
   Serial.begin(9600);
   delay(2000);
   Wire.begin();
@@ -77,6 +83,7 @@ void setup() {
 }
 
 void loop() {
+  
   // Read DHT11
   int temperature = 0;
   int humidity = 0;
@@ -117,12 +124,9 @@ void loop() {
     String command = Serial.readStringUntil('\n');
     command.trim();
     if (command == "WATER") {
+      digitalWrite(pumpPin, LOW);
+      delay(2200);
       digitalWrite(pumpPin, HIGH);
-      delay(3000);
-      digitalWrite(pumpPin, LOW);
-    }
-    if (command == "NOWATER") {
-      digitalWrite(pumpPin, LOW);
     }
   }
 
@@ -143,4 +147,5 @@ void loop() {
 
   mylcd.Fill_Rectangle(275, 195, 425, 215);
   mylcd.Print_String(String(light), 320, 195);
+
 }
