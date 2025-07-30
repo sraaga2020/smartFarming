@@ -1,8 +1,9 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for, session
 import serial
 import time
 
 app = Flask(__name__)
+selected_plant = None
 
 # Change this to your actual Arduino serial port
 ser = serial.Serial('/dev/cu.usbmodem14101', 9600, timeout=1)
@@ -102,6 +103,7 @@ plant_data = {
     }
 }
 
+
 def parse_sensor_data():
     """
     Read serial lines and parse sensor data.
@@ -161,13 +163,10 @@ def check_ranges(sensor_data, ideal_ranges):
 
     if moisture is not None:
         if moisture < ideal_ranges["moisture"][0]:
-            suggestions.append("Watering automatically due to low moisture.")
-            ser.write(b'WATER\n')  # Send command to Arduino to turn on pump
+            suggestions.append("Increase watering.")
         elif moisture > ideal_ranges["moisture"][1]:
             suggestions.append("Reduce watering.")
-            ser.write(b'NOWATER\n')
-        else:
-            ser.write(b'NOWATER\n')
+           
     if temp is not None:
         if temp < ideal_ranges["temp"][0]:
             suggestions.append("Increase temperature.")
@@ -190,11 +189,18 @@ def check_ranges(sensor_data, ideal_ranges):
     return suggestions
 
 
+
+app.secret_key = 'some_secret_key'  # required for session
+
 @app.route('/', methods=['GET', 'POST'])
 def index():
     sensor_data = parse_sensor_data()
+    if request.method == 'POST':
+        selected_plant = request.form.get('plant_select', None)
+        session['selected_plant'] = selected_plant
+    else:
+        selected_plant = session.get('selected_plant', None)
 
-    selected_plant = request.form.get('plant_select', None)
     suggestions = []
     if selected_plant in plant_data:
         ideal = plant_data[selected_plant]
@@ -205,6 +211,17 @@ def index():
                            selected_plant=selected_plant,
                            sensor_data=sensor_data,
                            suggestions=suggestions)
+
+@app.route('/WATER', methods=['POST'])
+def water_plant():
+    try:
+        ser.write(b'WATER\n')
+        time.sleep(1)
+    except Exception as e:
+        print("Error sending to Arduino:", e)
+    # Redirect back to index, selected_plant preserved in session
+    return redirect(url_for('index'))
+
 
 
 if __name__ == '__main__':
